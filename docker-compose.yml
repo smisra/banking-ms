@@ -1,0 +1,57 @@
+version: '2.1'
+services:
+  customers:
+    build: customers/
+    mem_limit: 800m
+    ports:
+      - "8082:8080"
+    networks:
+      - bankingmicroservicesexample_bank
+    restart: on-failure
+    environment:
+      - MONGO_HOST=mongo
+      - ES_JAVA_OPTS= "-Xms450mb -Xmx450mb"
+
+  accountcmd:
+    build: account.cmd/
+    mem_limit: 800m
+    ports:
+      - "8089:8080"
+    networks:
+      - bankingmicroservicesexample_bank
+    restart: on-failure
+    environment:
+      - MONGO_HOST=mongo
+      - RABBIT_HOST=rabbitmq
+
+  accountquery:
+    build: account.query/
+    mem_limit: 800m
+    ports:
+      - "8084:8080"
+    networks:
+      - bankingmicroservicesexample_bank
+    restart: on-failure
+    environment:
+      - MONGO_HOST=mongo
+      - RABBIT_HOST=rabbitmq
+      - ES_JAVA_OPTS= "-Xms450mb -Xmx450mb"
+
+  transactionserver:
+    build: transactions/
+    mem_limit: 800m
+    ports:
+      - "8086:8080"
+    environment:
+      - MONGO_HOST=mongo
+      - ES_JAVA_OPTS= "-Xms150mb -Xmx150mb"
+    networks:
+      - bankingmicroservicesexample_bank
+    restart: on-failure
+
+networks:
+  bankingmicroservicesexample_bank:
+    external: true
+
+volumes:
+  mongo:

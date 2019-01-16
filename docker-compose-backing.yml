@@ -1,0 +1,36 @@
+version: '2'
+services:
+  discoveryservice:
+    image: 'aista/eureka'
+    ports:
+      - "8761:8761"
+    networks:
+      - bank
+  edgeservice:
+    build: 'edgeservice/'
+    ports:
+      - "8080:8080"
+    networks:
+      - bank
+  mongo:
+    image: 'mongo:3.4.1'
+    ports:
+      - '27017:27017'
+    volumes:
+      - 'mongo:/data/db'
+    networks:
+      - bank
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - bank
+
+networks:
+  bank:
+    driver: bridge
+
+volumes:
+  mongo:

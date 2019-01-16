@@ -1,0 +1,36 @@
+
+\.DS_Store
+
+*.iml
+
+\.idea/
+*.class
+out/
+
+.gradle
+/build/
+!gradle/wrapper/gradle-wrapper.jar
+**/coverage/**
+**/jacoco/**
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/

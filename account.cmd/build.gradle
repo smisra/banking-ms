@@ -1,0 +1,24 @@
+apply plugin: "jacoco"
+
+dependencies {
+    compile project(":eventsourcing")
+    providedRuntime('org.springframework.boot:spring-boot-starter-tomcat')
+    compile('org.springframework.cloud:spring-cloud-starter-eureka')
+    compile("org.springframework.boot:spring-boot-starter-actuator")
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile("org.axonframework:axon-test:${axonVersion}")
+    compile("org.powermock:powermock-module-junit4:1.7.4")
+    compile("org.powermock:powermock-api-mockito:1.7.4")
+
+    testCompile('org.springframework.boot:spring-boot-starter-data-mongodb')
+}
+
+version = '0.0.1'
+
+
+contracts {
+    baseClassMappings {
+        baseClassMapping(".*", "com.ultimatesoftware.banking.account.cmd.provider.AccountCmdContractBase")
+    }
+}
+

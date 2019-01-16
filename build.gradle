@@ -1,0 +1,164 @@
+buildscript {
+    ext {
+        springCloudVersion = 'Edgware.SR4'
+        springBootVersion = '1.5.14.RELEASE'
+        axonVersion = '3.1.2'
+        aspectjVersion = '1.9.1'
+        verifierVersion = '1.2.3.RELEASE'
+        springfoxVersion = '2.8.0'
+    }
+
+    dependencies {
+        classpath "org.springframework.cloud:spring-cloud-contract-gradle-plugin:${verifierVersion}"
+    }
+}
+
+plugins {
+    id "io.spring.dependency-management" version "1.0.6.RELEASE"
+    id "org.springframework.boot" version "1.5.14.RELEASE" apply false
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        mavenBom "org.springframework.boot:spring-boot-starter-parent:${springBootVersion}"
+    }
+}
+
+apply plugin: 'java'
+
+dependencies {
+    compile project('customers')
+    compile project('account.cmd')
+    compile project('account.query')
+    compile project('transactions')
+    compile project('edgeservice')
+    compile project('tests')
+}
+
+assemble.dependsOn(clean)
+
+def springProjects = subprojects.findAll { project -> project.name.indexOf('cmd') != -1 || project.name.indexOf('query') != -1}
+def supportProjects = subprojects.findAll { project -> project.name.equals('edgeservice') || project.name.equals('tests') }
+def crudProjects = subprojects.findAll { project -> project.name.equals('customers') }
+
+springProjects.addAll(supportProjects)
+springProjects.addAll(crudProjects)
+springProjects.add(project('transactions'))
+
+allprojects {
+    group = 'com.ultimatesoftware.banking'
+    sourceCompatibility = 1.8
+
+	repositories {
+        jcenter()
+        mavenCentral()
+        maven {
+            url 'https://dl.bintray.com/palantir/releases'
+        }
+	}
+    apply plugin: 'java'
+    apply plugin: 'checkstyle'
+    apply plugin: 'jacoco'
+
+    checkstyle {
+        configFile = new File(rootDir, "checkstyles.xml")
+    }
+
+    checkstyleTest {
+        source = fileTree('src/test') {
+            excludes = ['*.yml', '*contracts/org/springframework/cloud/contract/verifier/tests*']
+        }
+    }
+
+    test {
+        exclude '**/service/configuration/**'
+        exclude '**/service/repositories/**'
+
+        jacoco {
+            append = false
+            destinationFile = file("./jacoco/jacocoTest.exec")
+            classDumpDir = file("./jacoco/classpathdumps")
+        }
+        def testCount = 0
+        afterTest {
+            desc, result ->
+                println "${++testCount}.\t[$result.resultType]\t${desc.className.split(/\./)[-1]}.'$desc.name'"
+        }
+        afterSuite {
+            desc, result ->
+                // match outer-most suite
+                if (!desc.parent) {
+                    def results = "Results: $result.resultType ($result.testCount tests, $result.successfulTestCount successes, $result.failedTestCount failures, $result.skippedTestCount skipped)"
+                    def repeat = results.length() + 4
+                    println "\n ${'-' * repeat} \n | ${results} | \n ${'-' * repeat}"
+                }
+        }
+    }
+
+    jacoco {
+        toolVersion = "0.8.2"
+        reportsDir = file("./coverage")
+    }
+
+    jacocoTestReport {
+        reports {
+            html {
+                enabled true
+            }
+        }
+        afterEvaluate {
+            classDirectories = files(classDirectories.files.collect {
+                fileTree(dir: it,
+                        exclude: [
+                                '**/service/configuration/**',
+                                '**/service/repositories/**',
+                                '**/events/**',
+                                '**/exceptions/**',
+                                '**/models/**'
+                        ]
+                )
+            })
+        }
+    }
+
+    test.finalizedBy(jacocoTestCoverageVerification)
+
+}
+
+configure(springProjects) {
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'groovy'
+    apply plugin: 'spring-cloud-contract'
+
+    configurations {
+        providedRuntime
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        }
+    }
+    dependencies {
+        compile 'org.springframework.boot:spring-boot-starter-actuator'
+        compile 'org.springframework.boot:spring-boot-starter-aop'
+        compile 'org.springframework.cloud:spring-cloud-starter-config'
+        compile("io.springfox:springfox-swagger2:${springfoxVersion}")
+        compile("io.springfox:springfox-swagger-ui:${springfoxVersion}")
+        testCompile 'junit:junit:4.12'
+        testCompile('org.springframework.boot:spring-boot-starter-test')
+        testCompile "org.springframework.cloud:spring-cloud-starter-contract-verifier"
+        testCompile "org.springframework.cloud:spring-cloud-contract-spec"
+    }
+}
+
+wrapper {
+    gradleVersion = '4.8'
+}
+
+task printProj {
+    println 'Projects: ' + springProjects
+}
+
+assemble.dependsOn(clean)
